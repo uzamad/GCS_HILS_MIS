@@ -1881,7 +1881,7 @@ namespace GCS_240626
                         ForeColor = LIME,
                         Font      = t1Font,
                         Tag       = initOn,
-                        OffColor  = Color.FromArgb(0, 60, 0)
+                        OffColor  = Color.FromArgb(64, 64, 64)
                     };
                     if (initOn) b.SetOn(true);
                     b.Click += (s, e) => { bool now = !(bool)b.Tag; b.Tag = now; cb(now); };
@@ -1907,7 +1907,7 @@ namespace GCS_240626
                         ForeColor = LIME,
                         Font      = t1Font,
                         Tag       = initOn,
-                        OffColor  = Color.FromArgb(0, 60, 0)
+                        OffColor  = Color.FromArgb(64, 64, 64)
                     };
                     if (initOn) b.SetOn(true);
                     b.Click += (s, e) => { bool now = !(bool)b.Tag; b.Tag = now; cb(now); };
@@ -1932,9 +1932,9 @@ namespace GCS_240626
                         Location  = new Point(x, y),
                         Size      = new Size(w, h),
                         ForeColor = LIME,
-                        Font      = t1Font,
+                        Font      = new Font("Arial Rounded MT Bold", 14f, FontStyle.Bold),
                         Tag       = false,
-                        OffColor  = Color.FromArgb(0, 60, 0)
+                        OffColor  = Color.FromArgb(64, 64, 64)
                     };
                     b.MouseDown += (s, e) => { b.SetOn(true);  cb(true);  };
                     b.MouseUp   += (s, e) => { b.SetOn(false); cb(false); };
@@ -1964,7 +1964,7 @@ namespace GCS_240626
                         ForeColor = LIME,
                         Font      = t1Font,
                         Tag       = (m == 3),   // STANDBY is default
-                        OffColor  = Color.FromArgb(0, 60, 0)
+                        OffColor  = Color.FromArgb(64, 64, 64)
                     };
                 }
                 modeBtns[3].SetOn(true);   // STANDBY ON at startup
@@ -2022,7 +2022,7 @@ namespace GCS_240626
                     ForeColor = LIME,
                     Font      = t1Font,
                     Tag       = true,
-                    OffColor  = Color.FromArgb(0, 60, 0)
+                    OffColor  = Color.FromArgb(64, 64, 64)
                 };
                 var btnAltPres = new GcsButton
                 {
@@ -2032,7 +2032,7 @@ namespace GCS_240626
                     ForeColor = LIME,
                     Font      = t1Font,
                     Tag       = false,
-                    OffColor  = Color.FromArgb(0, 60, 0)
+                    OffColor  = Color.FromArgb(64, 64, 64)
                 };
                 btnAltGps.SetOn(true);   // GPS is default ON at startup
 
@@ -2066,10 +2066,12 @@ namespace GCS_240626
                 int nudgeX = T1_OFFSET_X + gbWAlt + H_GAP;  // right edge of groupbox + gap
                 int nudgeW = GB_BW / 2;                      // 50px = half of GPS/Pres Alt width
                 int nudgeH = (T1H - V_GAP) / 2;             // (50-4)/2 = 23px; two buttons + gap = T1H
-                int nudgeInnerY = 20;                        // offset below groupbox title bar
-                page.Controls.Add(MakeNudgeBtn("+", nudgeX, gbY + nudgeInnerY + 2,                    nudgeW, nudgeH + 2 + 6,
+                int nudgeInnerY = 5;// 20;                        // offset below groupbox title bar
+                page.Controls.Add(MakeNudgeBtn("+", nudgeX, gbY + nudgeInnerY + 2,                    nudgeW, nudgeH + 6 + 6,
                                                on => _cmdSender.State.GcsAscend  = on));
-                page.Controls.Add(MakeNudgeBtn("-", nudgeX, gbY + nudgeInnerY + nudgeH + V_GAP,   nudgeW, nudgeH + 6,
+               // page.Controls.Add(MakeNudgeBtn("-", nudgeX, gbY + nudgeInnerY + nudgeH + V_GAP,   nudgeW, nudgeH + 6,
+               //                                on => _cmdSender.State.GcsDescend = on));
+                page.Controls.Add(MakeNudgeBtn("-", nudgeX, gbY + nudgeInnerY + nudgeH + 14, nudgeW, nudgeH + 6 + 6,
                                                on => _cmdSender.State.GcsDescend = on));
 
                 var grpSpd = new GroupBox
@@ -2089,7 +2091,7 @@ namespace GCS_240626
                     ForeColor = LIME,
                     Font      = t1Font,
                     Tag       = true,
-                    OffColor  = Color.FromArgb(0, 60, 0)
+                    OffColor  = Color.FromArgb(64, 64, 64)
                 };
                 var btnSpdAds = new GcsButton
                 {
@@ -2099,7 +2101,7 @@ namespace GCS_240626
                     ForeColor = LIME,
                     Font      = t1Font,
                     Tag       = false,
-                    OffColor  = Color.FromArgb(0, 60, 0)
+                    OffColor  = Color.FromArgb(64, 64, 64)
                 };
                 btnSpdGps.SetOn(true);   // GPS is default ON at startup
 
@@ -2130,9 +2132,11 @@ namespace GCS_240626
 
                 // ── Speed nudge +/- (right of grpSpd) ────────────────────
                 int spdGbY = gbY + GB_H + 4;   // same Y offset used for grpSpd
-                page.Controls.Add(MakeNudgeBtn("+", nudgeX, spdGbY + nudgeInnerY + 2,                    nudgeW, nudgeH + 2 + 6,
+                page.Controls.Add(MakeNudgeBtn("+", nudgeX, spdGbY + nudgeInnerY + 2, nudgeW, nudgeH + 6 + 6,
                                                on => _cmdSender.State.GcsIncrementSpeed = on));
-                page.Controls.Add(MakeNudgeBtn("-", nudgeX, spdGbY + nudgeInnerY + nudgeH + V_GAP,   nudgeW, nudgeH + 6,
+               // page.Controls.Add(MakeNudgeBtn("-", nudgeX, spdGbY + nudgeInnerY + nudgeH + V_GAP,   nudgeW, nudgeH + 6 + 6,
+               //                                on => _cmdSender.State.GcsDecrementSpeed = on));
+                page.Controls.Add(MakeNudgeBtn("-", nudgeX, spdGbY + nudgeInnerY + nudgeH + 14, nudgeW, nudgeH + 6 + 6,
                                                on => _cmdSender.State.GcsDecrementSpeed = on));
 
                 // ── Brakes button (bottom) ────────────────────────────────
@@ -2146,7 +2150,7 @@ namespace GCS_240626
                     ForeColor = LIME,
                     Font      = FNT_TAB,
                     Tag       = true,      // brakes applied by default
-                    OffColor  = Color.FromArgb(0, 60, 0)
+                    OffColor  = Color.FromArgb(64, 64, 64)
                 };
                 brakesBtn.SetOn(true);
                 brakesBtn.Click += (s, e) =>
@@ -2168,11 +2172,15 @@ namespace GCS_240626
             }
 
             // ── TAB 2 — Flight Automation ─────────────────────────────────
-            //   Heading : "Flight Automation"
-            //   Row 0   : Ascend   | Descend  | Alt Hold | Spd Hold
-            //   Row 1   : Loiter   | Air Modes| Gnd Clear| FA04
-            //   Rows 2-4: placeholders FA05–FA16
-            //   Bottom  : [Gain Tune checkbox] [Stability Augmentation checkbox]
+            //   3-column layout, button size 100×50 — matches Tab 1 sizing.
+            //   Row 0 : Ht Err Lead  | HT Err Intg   | Init Pitch
+            //   Row 1 : Init Rudder  | Init Aileron   | PR Ld Filter
+            //   Row 2 : Def Lat Gains| Def Lon Gains  | Spare
+            //   Row 3 : Thr Err Intg | SLT            | Flaps Down
+            //   Row 4 : NonLin Roll  | Flaps/Ailrn    | Alt Hold
+            //   Row 5 : Gnd Clear    | Tel Logging    | Speed Hold
+            //   Row 6 : Pitch Angle* | ROC Control*   | Air Mode
+            //   * Pitch Angle / ROC Control mutually exclusive (HeightControlScheme)
             {
                 var page = new TabPage("Autop")
                 {
@@ -2182,21 +2190,135 @@ namespace GCS_240626
 
                 AddHeading(page, "Flight Automation");
 
-                page.Controls.Add(MakeToggle("Ascend",    0, 0, false, on => _cmdSender.State.GcsAscend    = on));
-                page.Controls.Add(MakeToggle("Descend",   1, 0, false, on => _cmdSender.State.GcsDescend   = on));
-                page.Controls.Add(MakeToggle("Alt Hold",  2, 0, false, on => _cmdSender.State.AltitudeHold = on));
-                page.Controls.Add(MakeToggle("Spd Hold",  3, 0, false, on => _cmdSender.State.SpeedHold    = on));
+                // Button geometry — same as Tab 1
+                const int T2W        = 100;
+                const int T2H        = 50;
+                const int T2S        = T2H + V_GAP;          // stride = 54
+                const int T2BY       = BTN_Y - 10;           // = 42, matches T1BY
+                const int T2_OFFSET  = 5;                    // left margin, matches T1_OFFSET_X
+                var t2Font = new Font("Arial Rounded MT Bold", 10f, FontStyle.Bold);
 
-                page.Controls.Add(MakeToggle("Loiter",    0, 1, false, on => _cmdSender.State.Loiter            = on));
-                page.Controls.Add(MakeToggle("Air Modes", 1, 1, false, on => _cmdSender.State.AirModesEnabledSwt = on));
-                page.Controls.Add(MakeToggle("Gnd Clear", 2, 1, false, on => _cmdSender.State.GndCrewClearanceSwt = on));
-                page.Controls.Add(MakePlaceholder("FA04", 3, 1));
+                GcsButton T2Tog(string lbl, int col, int row, bool initOn, Action<bool> cb)
+                {
+                    var b = new GcsButton
+                    {
+                        Text      = lbl,
+                        Location  = new Point(T2_OFFSET + H_GAP + col * (T2W + H_GAP), T2BY + row * T2S),
+                        Size      = new Size(T2W, T2H),
+                        ForeColor = LIME,
+                        Font      = t2Font,
+                        Tag       = initOn,
+                        OffColor  = Color.FromArgb(64, 64, 64)
+                    };
+                    if (initOn) b.SetOn(true);
+                    b.Click += (s, e) => { bool now = !(bool)b.Tag; b.Tag = now; cb(now); };
+                    _resetActions.Add(() => { b.Tag = initOn; b.SetOn(initOn); cb(initOn); });
+                    return b;
+                }
+                GcsButton T2Ph(string lbl, int col, int row) => new GcsButton
+                {
+                    Text      = lbl,
+                    Location  = new Point(T2_OFFSET + H_GAP + col * (T2W + H_GAP), T2BY + row * T2S),
+                    Size      = new Size(T2W, T2H),
+                    ForeColor = LIME,
+                    Font      = t2Font
+                };
 
-                FillRows(page, "FA", 2, 4, startN: 5);   // FA05..FA16
+                // Row 0
+                page.Controls.Add(T2Tog("Ht Err Lead",   0, 0, false, on => { }));
+                page.Controls.Add(T2Tog("HT Err Intg",   1, 0, true,  on => { }));
+                page.Controls.Add(T2Tog("Init Pitch",    2, 0, false, on => { }));
+
+                // Row 1
+                page.Controls.Add(T2Tog("Init Rudder",   0, 1, false, on => { }));
+                page.Controls.Add(T2Tog("Init Aileron",  1, 1, false, on => { }));
+                page.Controls.Add(T2Tog("PR Ld Filter",  2, 1, false, on => { }));
+
+                // Row 2
+                page.Controls.Add(T2Tog("Def Lat Gains", 0, 2, true,  on => _cmdSender.State.SetDefaultLatGains = on));
+                page.Controls.Add(T2Tog("Def Lon Gains", 1, 2, true,  on => _cmdSender.State.SetDefaultLonGains = on));
+                page.Controls.Add(T2Tog("Air Mode",      2, 2, false, on => _cmdSender.State.AirModesEnabledSwt = on));
+
+                // Row 3
+                page.Controls.Add(T2Tog("Thr Err Intg",  0, 3, false, on => { }));
+                page.Controls.Add(T2Tog("SLT",           1, 3, false, on => { }));
+                page.Controls.Add(T2Tog("Flaps Down",    2, 3, false, on => _cmdSender.State.FlapsDown = on));
+
+                // Row 4
+                page.Controls.Add(T2Tog("NonLin Roll",   0, 4, false, on => _cmdSender.State.UseNonLinearRollControl = on));
+                page.Controls.Add(T2Tog("Flaps/Ailrn",   1, 4, false, on => _cmdSender.State.UseFlapsAsAilerons = on));
+                page.Controls.Add(T2Tog("Alt Hold",      2, 4, false, on => _cmdSender.State.AltitudeHold = on));
+
+                // Row 5
+                page.Controls.Add(T2Tog("Gnd Clear",     0, 5, false, on => _cmdSender.State.GndCrewClearanceSwt = on));
+                page.Controls.Add(T2Tog("Tel Logging",   1, 5, false, on => _cmdSender.State.EnableLogging = on));
+                page.Controls.Add(T2Tog("Speed Hold",    2, 5, false, on => _cmdSender.State.SpeedHold = on));
+
+                // ── Height Control Scheme GroupBox (moved down below row 5) ───
+                //   Pitch Angle / ROC Control mutually exclusive (HeightControlScheme)
+                //   Pitch Angle ON → HeightControlScheme = false (default)
+                //   ROC Control ON → HeightControlScheme = true
+                int hcsY = T2BY + 6 * T2S + 8;                  // below row 5 + extra gap
+                int hcsW = H_GAP + 2 * (T2W + H_GAP);          // 2-button width = 212px
+                int hcsH = 22 + T2H + 4;                        // title + button + pad = 76
+                var grpHcs = new GroupBox
+                {
+                    Text      = "Height Control Scheme",
+                    Location  = new Point(T2_OFFSET, hcsY),
+                    Size      = new Size(hcsW, hcsH),
+                    ForeColor = LIME,
+                    Font      = new Font("Arial Rounded MT Bold", 8f, FontStyle.Regular)
+                };
+
+                GcsButton btnPitchAngle = null, btnRocControl = null;
+                btnPitchAngle = new GcsButton
+                {
+                    Text      = "Pitch Angle",
+                    Location  = new Point(H_GAP + 0 * (T2W + H_GAP), 20),
+                    Size      = new Size(T2W, T2H),
+                    ForeColor = LIME,
+                    Font      = t2Font,
+                    Tag       = true,
+                    OffColor  = Color.FromArgb(64, 64, 64)
+                };
+                btnRocControl = new GcsButton
+                {
+                    Text      = "ROC Control",
+                    Location  = new Point(H_GAP + 1 * (T2W + H_GAP), 20),
+                    Size      = new Size(T2W, T2H),
+                    ForeColor = LIME,
+                    Font      = t2Font,
+                    Tag       = false,
+                    OffColor  = Color.FromArgb(64, 64, 64)
+                };
+                btnPitchAngle.SetOn(true);   // Pitch Angle default ON
+                btnPitchAngle.Click += (s, e) =>
+                {
+                    if ((bool)btnPitchAngle.Tag) { btnPitchAngle.SetOn(true); return; }
+                    btnPitchAngle.Tag = true;  btnPitchAngle.SetOn(true);
+                    btnRocControl.Tag = false; btnRocControl.SetOn(false);
+                    _cmdSender.State.HeightControlScheme = false;
+                };
+                btnRocControl.Click += (s, e) =>
+                {
+                    if ((bool)btnRocControl.Tag) { btnRocControl.SetOn(true); return; }
+                    btnRocControl.Tag = true;  btnRocControl.SetOn(true);
+                    btnPitchAngle.Tag = false; btnPitchAngle.SetOn(false);
+                    _cmdSender.State.HeightControlScheme = true;
+                };
+                _resetActions.Add(() =>
+                {
+                    btnPitchAngle.Tag = true;  btnPitchAngle.SetOn(true);
+                    btnRocControl.Tag = false; btnRocControl.SetOn(false);
+                    _cmdSender.State.HeightControlScheme = false;
+                });
+                grpHcs.Controls.Add(btnPitchAngle);
+                grpHcs.Controls.Add(btnRocControl);
+                page.Controls.Add(grpHcs);
 
                 // ── Gain Tune & Stability Augmentation — checkboxes at bottom ─
                 var chkFont2 = new Font("Arial Rounded MT Bold", 10f, FontStyle.Regular);
-                int chkY2    = BTN_Y + 5 * ROW_STRIDE + 8;   // below 5 button rows + gap
+                int chkY2    = hcsY + hcsH + 6;    // below the groupbox + gap
 
                 var chkGainTune = new CheckBox
                 {
@@ -2230,8 +2352,12 @@ namespace GCS_240626
             }
 
             // ── TAB 3 — Landing Control ───────────────────────────────────
-            //   Heading : "Landing Control"
-            //   All placeholders LC01–LC20
+            //   3-column layout, button size 100×50 — matches Tab 1/2 sizing.
+            //   Row 0 : Radar Alt      | Abort Landing  | Emergency Landing
+            //   Row 1 : Dummy Landing  | Deny Hit Crit  | Landing
+            //   GroupBox "Landing Direction" : End1→End2 / End2→End1 (radio)
+            //   Row 2 : Retract        | Deploy         (mutually exclusive)
+            //   GroupBox "Takeoff Direction" : End1→End2 / End2→End1 (radio)
             {
                 var page = new TabPage("Landing")
                 {
@@ -2239,7 +2365,145 @@ namespace GCS_240626
                     ForeColor = LIME
                 };
                 AddHeading(page, "Landing Control");
-                FillRows(page, "LC", 0, 4);
+
+                const int T3W       = 100;
+                const int T3H       = 50;
+                const int T3S       = T3H + V_GAP;         // stride = 54
+                const int T3BY      = BTN_Y - 10;          // = 42
+                const int T3_OFFSET = 5;
+                var t3Font   = new Font("Arial Rounded MT Bold", 10f, FontStyle.Bold);
+                var grpFont  = new Font("Arial Rounded MT Bold", 10f, FontStyle.Regular);
+                var radFont  = new Font("Arial Rounded MT Bold", 9f,  FontStyle.Regular);
+
+                GcsButton T3Tog(string lbl, int col, int row, bool initOn, Action<bool> cb, int extraY = 0)
+                {
+                    var b = new GcsButton
+                    {
+                        Text      = lbl,
+                        Location  = new Point(T3_OFFSET + H_GAP + col * (T3W + H_GAP), T3BY + row * T3S + extraY),
+                        Size      = new Size(T3W, T3H),
+                        ForeColor = LIME,
+                        Font      = t3Font,
+                        Tag       = initOn,
+                        OffColor  = Color.FromArgb(64, 64, 64)
+                    };
+                    if (initOn) b.SetOn(true);
+                    b.Click += (s, e) => { bool now = !(bool)b.Tag; b.Tag = now; cb(now); };
+                    _resetActions.Add(() => { b.Tag = initOn; b.SetOn(initOn); cb(initOn); });
+                    return b;
+                }
+
+                // Row 0
+                page.Controls.Add(T3Tog("Radar Alt",     0, 0, false, on => _cmdSender.State.UseRadarAlt      = on));
+                page.Controls.Add(T3Tog("Abort Landing", 1, 0, false, on => _cmdSender.State.AbortLanding     = on));
+                page.Controls.Add(T3Tog("Emrg Landing",  2, 0, false, on => _cmdSender.State.EmergencyLanding = on));
+
+                // Row 1
+                page.Controls.Add(T3Tog("Dummy Landing", 0, 1, false, on => _cmdSender.State.DummyLanding    = on));
+                page.Controls.Add(T3Tog("Deny Hit Crit", 1, 1, false, on => _cmdSender.State.DenyHitCriteria = on));
+                // Landing — placed underneath Dummy Landing (col 0, row 2)
+                page.Controls.Add(T3Tog("Landing",       0, 2, false, on => _cmdSender.State.Landing         = on));
+
+                // ── Landing Direction groupbox (radio: End1→End2 default) ─────
+                //   LandingDirection = false → End1→End2 ; true → End2→End1
+                int ldY = T3BY + 3 * T3S + 10;
+                const int RAD_W  = 152;                    // radio button width (fits text)
+                const int GRP_W  = 12 + RAD_W + 12;        // groupbox snug to text = 176px
+                var grpLandDir = new GroupBox
+                {
+                    Text      = "Landing Direction",
+                    Location  = new Point(T3_OFFSET, ldY),
+                    Size      = new Size(GRP_W, 72),
+                    ForeColor = LIME,
+                    Font      = grpFont
+                };
+                var radLd12 = new RadioButton
+                {
+                    Text = "From End1 to End2", Location = new Point(12, 22),
+                    Size = new Size(RAD_W, 22), ForeColor = LIME, BackColor = Color.Transparent,
+                    Font = radFont, Checked = true
+                };
+                var radLd21 = new RadioButton
+                {
+                    Text = "From End2 to End1", Location = new Point(12, 46),
+                    Size = new Size(RAD_W, 22), ForeColor = LIME, BackColor = Color.Transparent,
+                    Font = radFont, Checked = false
+                };
+                radLd21.CheckedChanged += (s, e) => _cmdSender.State.LandingDirection = radLd21.Checked;
+                _resetActions.Add(() => { radLd12.Checked = true; _cmdSender.State.LandingDirection = false; });
+                grpLandDir.Controls.Add(radLd12);
+                grpLandDir.Controls.Add(radLd21);
+                page.Controls.Add(grpLandDir);
+
+                // ── Retract / Deploy (mutually exclusive) ─────────────────────
+                //   RetractNoseLandingGear : Retract=true, Deploy=false (default deployed)
+                int rdRow = ldY + 72 + 20;   // below Landing Direction groupbox
+                GcsButton btnRetract = null, btnDeploy = null;
+                btnRetract = new GcsButton
+                {
+                    Text = "Retract", Location = new Point(T3_OFFSET + H_GAP + 0 * (T3W + H_GAP), rdRow),
+                    Size = new Size(T3W, T3H), ForeColor = LIME, Font = t3Font,
+                    Tag = false, OffColor = Color.FromArgb(64, 64, 64)
+                };
+                btnDeploy = new GcsButton
+                {
+                    Text = "Deploy", Location = new Point(T3_OFFSET + H_GAP + 1 * (T3W + H_GAP), rdRow),
+                    Size = new Size(T3W, T3H), ForeColor = LIME, Font = t3Font,
+                    Tag = true, OffColor = Color.FromArgb(64, 64, 64)
+                };
+                btnDeploy.SetOn(true);   // gear deployed by default
+                btnRetract.Click += (s, e) =>
+                {
+                    if ((bool)btnRetract.Tag) { btnRetract.SetOn(true); return; }
+                    btnRetract.Tag = true;  btnRetract.SetOn(true);
+                    btnDeploy.Tag  = false; btnDeploy.SetOn(false);
+                    _cmdSender.State.RetractNoseLandingGear = true;
+                };
+                btnDeploy.Click += (s, e) =>
+                {
+                    if ((bool)btnDeploy.Tag) { btnDeploy.SetOn(true); return; }
+                    btnDeploy.Tag  = true;  btnDeploy.SetOn(true);
+                    btnRetract.Tag = false; btnRetract.SetOn(false);
+                    _cmdSender.State.RetractNoseLandingGear = false;
+                };
+                _resetActions.Add(() =>
+                {
+                    btnDeploy.Tag  = true;  btnDeploy.SetOn(true);
+                    btnRetract.Tag = false; btnRetract.SetOn(false);
+                    _cmdSender.State.RetractNoseLandingGear = false;
+                });
+                page.Controls.Add(btnRetract);
+                page.Controls.Add(btnDeploy);
+
+                // ── Takeoff Direction groupbox (radio: End1→End2 default) ─────
+                //   TODirection = false → End1→End2 ; true → End2→End1
+                int toY = rdRow + T3H + 20;
+                var grpToDir = new GroupBox
+                {
+                    Text      = "Takeoff Direction",
+                    Location  = new Point(T3_OFFSET, toY),
+                    Size      = new Size(GRP_W, 72),
+                    ForeColor = LIME,
+                    Font      = grpFont
+                };
+                var radTo12 = new RadioButton
+                {
+                    Text = "From End1 to End2", Location = new Point(12, 22),
+                    Size = new Size(RAD_W, 22), ForeColor = LIME, BackColor = Color.Transparent,
+                    Font = radFont, Checked = true
+                };
+                var radTo21 = new RadioButton
+                {
+                    Text = "From End2 to End1", Location = new Point(12, 46),
+                    Size = new Size(RAD_W, 22), ForeColor = LIME, BackColor = Color.Transparent,
+                    Font = radFont, Checked = false
+                };
+                radTo21.CheckedChanged += (s, e) => _cmdSender.State.TODirection = radTo21.Checked;
+                _resetActions.Add(() => { radTo12.Checked = true; _cmdSender.State.TODirection = false; });
+                grpToDir.Controls.Add(radTo12);
+                grpToDir.Controls.Add(radTo21);
+                page.Controls.Add(grpToDir);
+
                 tc.TabPages.Add(page);
             }
 
@@ -2322,7 +2586,7 @@ namespace GCS_240626
                 Location  = new Point(SB_PAD, SB_TY),
                 Size      = new Size(SB_W, SB_H),
                 ForeColor = Color.FromArgb(220, 100, 0),
-                Font      = new Font("Arial Rounded MT Bold", 14f, FontStyle.Bold),
+                Font      = new Font("Arial Rounded MT Bold", 13f, FontStyle.Bold),
                 OffColor  = Color.FromArgb(60, 30, 0)
             };
             btnReset.Click += (s, e) =>
@@ -2337,7 +2601,7 @@ namespace GCS_240626
                 Location  = new Point(SB_PAD, SB_TY + SB_H + SB_GAP),
                 Size      = new Size(SB_W, SB_H),
                 ForeColor = Color.FromArgb(0, 220, 220),
-                Font      = new Font("Arial Rounded MT Bold", 14f, FontStyle.Bold),
+                Font      = new Font("Arial Rounded MT Bold", 13f, FontStyle.Bold),
                 OffColor  = Color.FromArgb(0, 50, 60)
             };
             btnSend.Click += (s, e) => _cmdSender?.SendNow();
@@ -2493,7 +2757,7 @@ namespace GCS_240626
         {
             private bool _isOn = false;  // latched toggle state
             private bool _mouseHeld = false;  // transient hold visual
-            private static readonly Color CLR_OFF = Color.FromArgb(0, 60, 0);
+            private static readonly Color CLR_OFF = Color.FromArgb(64, 64, 64);
             private static readonly Color CLR_ON  = Color.FromArgb(0, 130, 0);
             public Color OffColor { get; set; } = CLR_OFF;   // per-instance override
             private static readonly Color CLR_HI = Color.FromArgb(130, 130, 130);
@@ -2570,7 +2834,9 @@ namespace GCS_240626
                 };
                 // Reserve right-side space for LED so text doesn't overlap it
                 int textW = (ShowLed && _ledOff != null) ? r.Width - LED_SIZE - LED_PAD * 2 : r.Width;
-                g.DrawString(Text, Font, new SolidBrush(ForeColor),
+                // Text is dark gray when unpressed, normal ForeColor when pressed/latched ON
+                Color txtClr = showPressed ? ForeColor : Color.FromArgb(210, 210, 210);
+                g.DrawString(Text, Font, new SolidBrush(txtClr),
                              new RectangleF(r.X + d, r.Y + d, textW, r.Height), fmt);
                 // Draw LED top-right corner (only when ShowLed is true)
                 if (ShowLed)
