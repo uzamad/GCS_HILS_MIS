@@ -19,7 +19,7 @@ namespace GCS_240626
         public bool SetDefaultLonGains;     // bit 2
         public bool SetDefaultLatGains;     // bit 3
         public bool HeightControlScheme;    // bit 4  (0=normal, 1=ROC)
-        public bool UseAduSpeed;            // bit 5
+        // bit 5 reserved for UseHeightErrLeadFilter (per Auto Pilot sheet) — not yet wired
 
         // ── Byte 6  AP Byte 2 ────────────────────────────────────────
         public bool EnableGainTuning;               // bit 4
@@ -57,6 +57,7 @@ namespace GCS_240626
         public bool UseRadarAlt;            // bit 7
 
         // ── Byte 10  Mixed Data Byte ─────────────────────────────────
+        public bool DashR2Base;             // bit 0  — full-throttle return to base
         public bool GcsR2Base;              // bit 1
         public bool Search;                 // bit 2  — initiate search pattern
         public bool FullThrottle;           // bit 3
@@ -110,9 +111,14 @@ namespace GCS_240626
         public byte VehicleId = 2;          // must match VEHICLE_ID in apconst.h
 
         // ── Bytes 22-24  IPSU Relay Control ─────────────────────────
-        public byte RelayControlByte1;
-        public byte RelayControlByte2;
-        public byte RelayControlByte3;
+        //   Per RelayCntrlByte1/2/3 sheets: bit 0 = ON/Enable, 1 = OFF/Disable.
+        //   Defaults (bit set = OFF):
+        //   Byte1: servos ON; Video Rec + Strobe OFF (bits 3,2 — UI default)  → 0x0C
+        //   Byte2: Weapon,Payload,Pitot OFF (bits 3,2,1)                     → 0x0E
+        //   Byte3: Aux2,Retraction,Brakes,Aux1 OFF (bits 5,3,2,0)            → 0x2D
+        public byte RelayControlByte1 = 0x0C;
+        public byte RelayControlByte2 = 0x0E;
+        public byte RelayControlByte3 = 0x2D;
 
         // ── Byte 25  Brake command ───────────────────────────────────
         public byte BrakeCmd;
@@ -136,8 +142,7 @@ namespace GCS_240626
             VehicleMode         = 3;      // STANDBY — safe ground default
             UseGpsAlt           = true;   // GPS is default altitude sensor
             UsePresAlt          = false;
-            UseGpsSpeed         = true;   // GPS is default airspeed source
-            UseAduSpeed         = false;
+            UseGpsSpeed         = true;   // GPS is default airspeed source (0 = ADS)
         }
     }
 }

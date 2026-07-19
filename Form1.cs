@@ -1837,6 +1837,49 @@ namespace GCS_240626
                         page.Controls.Add(MakePlaceholder($"{prefix}{n++:D2}", col, row));
             }
 
+            // ── Free-positioned button helpers (used by Tabs 4/5/6) ───────
+            // Create a GcsButton at an absolute (x,y) with explicit size/font.
+            GcsButton FreeBtn(string lbl, int x, int y, int w, int h, Font f) => new GcsButton
+            {
+                Text      = lbl,
+                Location  = new Point(x, y),
+                Size      = new Size(w, h),
+                ForeColor = LIME,
+                Font      = f,
+                Tag       = false,
+                OffColor  = Color.FromArgb(64, 64, 64)
+            };
+            // Wire an independent on/off toggle (logical state in Tag, visual auto-latched).
+            void WireToggle(GcsButton b, bool initOn, Action<bool> cb)
+            {
+                b.Tag = initOn;
+                if (initOn) b.SetOn(true);
+                b.Click += (s, e) => { bool now = !(bool)b.Tag; b.Tag = now; cb(now); };
+                _resetActions.Add(() => { b.Tag = initOn; b.SetOn(initOn); cb(initOn); });
+            }
+            // Wire a mutually-exclusive set — exactly one ON at a time. onSel gets the index.
+            void WireExclusive(GcsButton[] set, int defIdx, Action<int> onSel)
+            {
+                for (int i = 0; i < set.Length; i++)
+                {
+                    int idx = i; var b = set[i];
+                    b.Tag = (i == defIdx);
+                    if (i == defIdx) b.SetOn(true);
+                    b.Click += (s, e) =>
+                    {
+                        foreach (var x in set) { x.Tag = false; x.SetOn(false); }
+                        b.Tag = true; b.SetOn(true);
+                        onSel(idx);
+                    };
+                }
+                _resetActions.Add(() =>
+                {
+                    foreach (var x in set) { x.Tag = false; x.SetOn(false); }
+                    set[defIdx].Tag = true; set[defIdx].SetOn(true);
+                    onSel(defIdx);
+                });
+            }
+
             // ── TAB 1 — Vehicle Management ────────────────────────────────
             //   3-column layout, button size 100×40.
             //   Rows 0-2 : 9 mutually exclusive VehicleMode buttons (3×3)
@@ -2105,21 +2148,20 @@ namespace GCS_240626
                 };
                 btnSpdGps.SetOn(true);   // GPS is default ON at startup
 
+                // Speed sensor is a single bit: Use_GPSSpeed (VC bit 0): 1 = GPS, 0 = ADS.
                 btnSpdGps.Click += (s, e) =>
                 {
                     if ((bool)btnSpdGps.Tag) { btnSpdGps.SetOn(true); return; }  // already ON — restore visual
                     btnSpdGps.Tag  = true;  btnSpdGps.SetOn(true);
-                    _cmdSender.State.UseGpsSpeed = true;
+                    _cmdSender.State.UseGpsSpeed = true;                          // 1 = GPS
                     btnSpdAds.Tag  = false; btnSpdAds.SetOn(false);
-                    _cmdSender.State.UseAduSpeed = false;
                 };
                 btnSpdAds.Click += (s, e) =>
                 {
                     if ((bool)btnSpdAds.Tag) { btnSpdAds.SetOn(true); return; }  // already ON — restore visual
                     btnSpdAds.Tag  = true;  btnSpdAds.SetOn(true);
-                    _cmdSender.State.UseAduSpeed = true;
+                    _cmdSender.State.UseGpsSpeed = false;                         // 0 = ADS
                     btnSpdGps.Tag  = false; btnSpdGps.SetOn(false);
-                    _cmdSender.State.UseGpsSpeed = false;
                 };
                 grpSpd.Controls.Add(btnSpdGps);
                 grpSpd.Controls.Add(btnSpdAds);
@@ -2127,7 +2169,7 @@ namespace GCS_240626
                 _resetActions.Add(() =>
                 {
                     btnSpdGps.Tag = true;  btnSpdGps.SetOn(true);  _cmdSender.State.UseGpsSpeed = true;
-                    btnSpdAds.Tag = false; btnSpdAds.SetOn(false); _cmdSender.State.UseAduSpeed = false;
+                    btnSpdAds.Tag = false; btnSpdAds.SetOn(false);
                 });
 
                 // ── Speed nudge +/- (right of grpSpd) ────────────────────
@@ -2173,13 +2215,13 @@ namespace GCS_240626
 
             // ── TAB 2 — Flight Automation ─────────────────────────────────
             //   3-column layout, button size 100×50 — matches Tab 1 sizing.
-            //   Row 0 : Ht Err Lead  | HT Err Intg   | Init Pitch
-            //   Row 1 : Init Rudder  | Init Aileron   | PR Ld Filter
-            //   Row 2 : Def Lat Gains| Def Lon Gains  | Spare
-            //   Row 3 : Thr Err Intg | SLT            | Flaps Down
-            //   Row 4 : NonLin Roll  | Flaps/Ailrn    | Alt Hold
-            //   Row 5 : Gnd Clear    | Tel Logging    | Speed Hold
-            //   Row 6 : Pitch Angle* | ROC Control*   | Air Mode
+            //   Row 0 : Ht Err Lead  | Init Pitch    | Init Rudder
+            //   Row 1 : Init Aileron | PR Ld Filter  | Def Lat Gains
+            //   Row 2 : Def Lon Gains| Air Mode      | SLT
+            //   Row 3 : Flaps Down   | NonLin Roll   | Flaps/Ailrn
+            //   Row 4 : Alt Hold     | Gnd Clear     | Tel Logging
+            //   Row 5 : Speed Hold
+            //   Height Control Scheme groupbox : Pitch Angle* | ROC Control*
             //   * Pitch Angle / ROC Control mutually exclusive (HeightControlScheme)
             {
                 var page = new TabPage("Autop")
@@ -2226,33 +2268,31 @@ namespace GCS_240626
 
                 // Row 0
                 page.Controls.Add(T2Tog("Ht Err Lead",   0, 0, false, on => { }));
-                page.Controls.Add(T2Tog("HT Err Intg",   1, 0, true,  on => { }));
-                page.Controls.Add(T2Tog("Init Pitch",    2, 0, false, on => { }));
+                page.Controls.Add(T2Tog("Init Pitch",    1, 0, false, on => { }));
+                page.Controls.Add(T2Tog("Init Rudder",   2, 0, false, on => { }));
 
                 // Row 1
-                page.Controls.Add(T2Tog("Init Rudder",   0, 1, false, on => { }));
-                page.Controls.Add(T2Tog("Init Aileron",  1, 1, false, on => { }));
-                page.Controls.Add(T2Tog("PR Ld Filter",  2, 1, false, on => { }));
+                page.Controls.Add(T2Tog("Init Aileron",  0, 1, false, on => { }));
+                page.Controls.Add(T2Tog("PR Ld Filter",  1, 1, false, on => { }));
+                page.Controls.Add(T2Tog("Def Lat Gains", 2, 1, true,  on => _cmdSender.State.SetDefaultLatGains = on));
 
                 // Row 2
-                page.Controls.Add(T2Tog("Def Lat Gains", 0, 2, true,  on => _cmdSender.State.SetDefaultLatGains = on));
-                page.Controls.Add(T2Tog("Def Lon Gains", 1, 2, true,  on => _cmdSender.State.SetDefaultLonGains = on));
-                page.Controls.Add(T2Tog("Air Mode",      2, 2, false, on => _cmdSender.State.AirModesEnabledSwt = on));
+                page.Controls.Add(T2Tog("Def Lon Gains", 0, 2, true,  on => _cmdSender.State.SetDefaultLonGains = on));
+                page.Controls.Add(T2Tog("Air Mode",      1, 2, false, on => _cmdSender.State.AirModesEnabledSwt = on));
+                page.Controls.Add(T2Tog("SLT",           2, 2, false, on => { }));
 
                 // Row 3
-                page.Controls.Add(T2Tog("Thr Err Intg",  0, 3, false, on => { }));
-                page.Controls.Add(T2Tog("SLT",           1, 3, false, on => { }));
-                page.Controls.Add(T2Tog("Flaps Down",    2, 3, false, on => _cmdSender.State.FlapsDown = on));
+                page.Controls.Add(T2Tog("Flaps Down",    0, 3, false, on => _cmdSender.State.FlapsDown = on));
+                page.Controls.Add(T2Tog("NonLin Roll",   1, 3, false, on => _cmdSender.State.UseNonLinearRollControl = on));
+                page.Controls.Add(T2Tog("Flaps/Ailrn",   2, 3, false, on => _cmdSender.State.UseFlapsAsAilerons = on));
 
                 // Row 4
-                page.Controls.Add(T2Tog("NonLin Roll",   0, 4, false, on => _cmdSender.State.UseNonLinearRollControl = on));
-                page.Controls.Add(T2Tog("Flaps/Ailrn",   1, 4, false, on => _cmdSender.State.UseFlapsAsAilerons = on));
-                page.Controls.Add(T2Tog("Alt Hold",      2, 4, false, on => _cmdSender.State.AltitudeHold = on));
+                page.Controls.Add(T2Tog("Alt Hold",      0, 4, false, on => _cmdSender.State.AltitudeHold = on));
+                page.Controls.Add(T2Tog("Gnd Clear",     1, 4, false, on => _cmdSender.State.GndCrewClearanceSwt = on));
+                page.Controls.Add(T2Tog("Tel Logging",   2, 4, false, on => _cmdSender.State.EnableLogging = on));
 
                 // Row 5
-                page.Controls.Add(T2Tog("Gnd Clear",     0, 5, false, on => _cmdSender.State.GndCrewClearanceSwt = on));
-                page.Controls.Add(T2Tog("Tel Logging",   1, 5, false, on => _cmdSender.State.EnableLogging = on));
-                page.Controls.Add(T2Tog("Speed Hold",    2, 5, false, on => _cmdSender.State.SpeedHold = on));
+                page.Controls.Add(T2Tog("Speed Hold",    0, 5, false, on => _cmdSender.State.SpeedHold = on));
 
                 // ── Height Control Scheme GroupBox (moved down below row 5) ───
                 //   Pitch Angle / ROC Control mutually exclusive (HeightControlScheme)
@@ -2436,7 +2476,7 @@ namespace GCS_240626
                 page.Controls.Add(grpLandDir);
 
                 // ── Retract / Deploy (mutually exclusive) ─────────────────────
-                //   RetractNoseLandingGear : Retract=true, Deploy=false (default deployed)
+                //   NLRetractionCmd (Landing byte bit 7): Retract=true, Deploy=false (default deployed)
                 int rdRow = ldY + 72 + 20;   // below Landing Direction groupbox
                 GcsButton btnRetract = null, btnDeploy = null;
                 btnRetract = new GcsButton
@@ -2457,20 +2497,20 @@ namespace GCS_240626
                     if ((bool)btnRetract.Tag) { btnRetract.SetOn(true); return; }
                     btnRetract.Tag = true;  btnRetract.SetOn(true);
                     btnDeploy.Tag  = false; btnDeploy.SetOn(false);
-                    _cmdSender.State.RetractNoseLandingGear = true;
+                    _cmdSender.State.NLRetractionCmd = true;   // Landing byte bit 7 (spec: RetractNoseLandingGearCMD)
                 };
                 btnDeploy.Click += (s, e) =>
                 {
                     if ((bool)btnDeploy.Tag) { btnDeploy.SetOn(true); return; }
                     btnDeploy.Tag  = true;  btnDeploy.SetOn(true);
                     btnRetract.Tag = false; btnRetract.SetOn(false);
-                    _cmdSender.State.RetractNoseLandingGear = false;
+                    _cmdSender.State.NLRetractionCmd = false;   // Landing byte bit 7 (spec: RetractNoseLandingGearCMD)
                 };
                 _resetActions.Add(() =>
                 {
                     btnDeploy.Tag  = true;  btnDeploy.SetOn(true);
                     btnRetract.Tag = false; btnRetract.SetOn(false);
-                    _cmdSender.State.RetractNoseLandingGear = false;
+                    _cmdSender.State.NLRetractionCmd = false;   // Landing byte bit 7 (spec: RetractNoseLandingGearCMD)
                 });
                 page.Controls.Add(btnRetract);
                 page.Controls.Add(btnDeploy);
@@ -2507,46 +2547,259 @@ namespace GCS_240626
                 tc.TabPages.Add(page);
             }
 
-            // ── TAB 4 — Mission Operations ────────────────────────────────
-            //   Heading : "Mission Operations"
-            //   All placeholders MO01–MO20
+            // ── TAB 4 — System ID & FCC ───────────────────────────────────
+            //   Row 0 : Deny Sensors Fail | (gap)        | Payload Video
+            //   Row 1 : Deny Abort Taxi   | Radio Silence | Backup Link
+            //   GroupBox "FCC Selection"  : Default | Master | Slave (exclusive)
+            //   GroupBox "System ID Byte" : Reset/DC..Control Surface Test (exclusive)
+            //   Ctrl-surface : Elevator | Aileron | Reset ; Rudder | Throttle | [☑ System ID]
+            //   Bottom : DGPS Corrections | OVI Data | Payload
             {
-                var page = new TabPage("Mission")
+                var page = new TabPage("SysID")
                 {
                     BackColor = Color.FromArgb(12, 12, 12),
                     ForeColor = LIME
                 };
-                AddHeading(page, "Mission Operations");
-                FillRows(page, "MO", 0, 4);
+                AddHeading(page, "System ID & FCC");
+
+                const int W   = 100;      // button width
+                const int H   = 40;       // button height (compact — many rows)
+                const int S   = H + 4;    // row stride
+                const int OFF = 5;        // left margin
+                const int G   = 4;        // gap
+                int Cx(int col) => OFF + G + col * (W + G);   // column x
+                var bFont = new Font("Arial Rounded MT Bold", 8.5f, FontStyle.Bold);
+                var gFont = new Font("Arial Rounded MT Bold", 8f, FontStyle.Regular);
+                int fullW = G + 3 * (W + G);   // 3-col span = 316
+
+                int y = BTN_Y - 12;   // first row
+
+                // ── Row 0 / Row 1 top toggles ─────────────────────────────
+                // ("Deny Sensors Fail" removed — no matching command in the spec)
+                var bPayVid = FreeBtn("Payload Video", Cx(2), y, W, H, bFont);
+                WireToggle(bPayVid, false, on => { });           // no field
+                page.Controls.Add(bPayVid);
+
+                y += S;
+                var bDenyTaxi = FreeBtn("Deny Abort Taxi", Cx(0), y, W, H, bFont);
+                WireToggle(bDenyTaxi, false, on => _cmdSender.State.DenyAbortTaxi = on);
+                page.Controls.Add(bDenyTaxi);
+                var bRadSil = FreeBtn("Radio Silence", Cx(1), y, W, H, bFont);
+                WireToggle(bRadSil, false, on => { });           // no field
+                page.Controls.Add(bRadSil);
+                var bBupLink = FreeBtn("Backup Link", Cx(2), y, W, H, bFont);
+                WireToggle(bBupLink, false, on => _cmdSender.State.Switch2BupLink = on);
+                page.Controls.Add(bBupLink);
+
+                // ── FCC Selection groupbox (Master / Slave) ───────────────
+                //   Spec (Auxiliary sheet, "Use FCC", byte 15 bit 6): 0 = Master, 1 = Slave.
+                //   Default = Master.
+                y += S + 6;
+                int fccW = G + 2 * (W + G);   // 2-button span — borders align with Master/Slave ends
+                var grpFcc = new GroupBox
+                {
+                    Text = "FCC Selection", Location = new Point(OFF, y),
+                    Size = new Size(fccW, 18 + H + 6), ForeColor = LIME, Font = gFont
+                };
+                var fccMaster = FreeBtn("Master", G + 0 * (W + G), 18, W, H, bFont);
+                var fccSlave  = FreeBtn("Slave",  G + 1 * (W + G), 18, W, H, bFont);
+                // Master → UseFcc = false (0) ; Slave → UseFcc = true (1)
+                WireExclusive(new[] { fccMaster, fccSlave }, 0, idx =>
+                    _cmdSender.State.UseFcc = (idx == 1));
+                grpFcc.Controls.Add(fccMaster);
+                grpFcc.Controls.Add(fccSlave);
+                page.Controls.Add(grpFcc);
+
+                // ── System ID Byte groupbox ───────────────────────────────
+                //   3×3 matrix at HALF height (Hide checkbox in empty slot),
+                //   then the control-surface rows are enclosed in the SAME boundary.
+                int sidH = H / 2;        // 20px button height (half)
+                int sidS = sidH + 4;     // 24px row stride
+                int Rx(int col) => G + col * (W + G);   // groupbox-relative column x
+                int matrixBot = 18 + 3 * sidS;          // below the 3 matrix rows
+                int cr0 = matrixBot + 10;               // control-surface row 0
+                int cr1 = cr0 + S;                      // control-surface row 1
+                int sidGrpH = cr1 + H + 8;              // full groupbox height
+                y += 18 + H + 6 + 6;
+                var grpSid = new GroupBox
+                {
+                    Text = "System ID Byte", Location = new Point(OFF, y),
+                    Size = new Size(fullW, sidGrpH), ForeColor = LIME, Font = gFont
+                };
+                var sidBtns = new[]
+                {
+                    FreeBtn("Reset/DC",     Rx(0), 18 + 0 * sidS, W, sidH, bFont),
+                    FreeBtn("Chirp 1",      Rx(1), 18 + 0 * sidS, W, sidH, bFont),
+                    FreeBtn("Chirp 2",      Rx(2), 18 + 0 * sidS, W, sidH, bFont),
+                    FreeBtn("Chirp 3",      Rx(0), 18 + 1 * sidS, W, sidH, bFont),
+                    FreeBtn("Doublet 1",    Rx(1), 18 + 1 * sidS, W, sidH, bFont),
+                    FreeBtn("Doublet 2",    Rx(2), 18 + 1 * sidS, W, sidH, bFont),
+                    FreeBtn("Doublet 3",    Rx(0), 18 + 2 * sidS, W, sidH, bFont),
+                    FreeBtn("Ctrl Surf Test", Rx(1), 18 + 2 * sidS, W, sidH, bFont),
+                };
+                // NOTE: SLT/SysID byte is NYI in the encoder — selection is visual only.
+                WireExclusive(sidBtns, 0, idx => { });
+                foreach (var b in sidBtns) grpSid.Controls.Add(b);
+
+                // Checkbox in the empty slot (col2, row2): hides the matrix buttons.
+                // Default CHECKED → matrix buttons hidden at startup.
+                var chkHide = new CheckBox
+                {
+                    Text = "Hide",
+                    Location = new Point(Rx(2), 18 + 2 * sidS),
+                    Size = new Size(W, 20), ForeColor = LIME, BackColor = Color.Transparent,
+                    Font = gFont, Checked = true
+                };
+                chkHide.CheckedChanged += (s, e) =>
+                {
+                    foreach (var b in sidBtns) b.Visible = !chkHide.Checked;
+                };
+                foreach (var b in sidBtns) b.Visible = false;   // hidden by default
+                grpSid.Controls.Add(chkHide);
+
+                // Control-surface rows inside the same boundary
+                var csElevator = FreeBtn("Elevator", Rx(0), cr0, W, H, bFont);
+                var csAileron  = FreeBtn("Aileron",  Rx(1), cr0, W, H, bFont);
+                var csReset    = FreeBtn("Reset",    Rx(2), cr0, W, H, bFont);
+                var csRudder   = FreeBtn("Rudder",   Rx(0), cr1, W, H, bFont);
+                var csThrottle = FreeBtn("Throttle", Rx(1), cr1, W, H, bFont);
+                WireExclusive(new[] { csElevator, csAileron, csRudder, csThrottle, csReset }, 4, idx => { });
+                grpSid.Controls.Add(csElevator); grpSid.Controls.Add(csAileron);
+                grpSid.Controls.Add(csReset);    grpSid.Controls.Add(csRudder);
+                grpSid.Controls.Add(csThrottle);
+
+                var chkSysId = new CheckBox
+                {
+                    Text = "System ID", Location = new Point(Rx(2) + 4, cr1 + 10),
+                    Size = new Size(100, 22), ForeColor = LIME, BackColor = Color.Transparent,
+                    Font = gFont, Checked = false
+                };
+                grpSid.Controls.Add(chkSysId);
+                page.Controls.Add(grpSid);
+
+                // ── Bottom row : DGPS Corrections | OVI Data | Payload ────
+                y += sidGrpH + 10;
+                var bDgps = FreeBtn("DGPS Corrections", Cx(0), y, W, H, bFont);
+                WireToggle(bDgps, false, on => _cmdSender.State.DgpsCorrectionsEnabled = on);
+                page.Controls.Add(bDgps);
+                var bOvi = FreeBtn("OVI Data", Cx(1), y, W, H, bFont);
+                WireToggle(bOvi, false, on => { });     // no field
+                page.Controls.Add(bOvi);
+                var bPayload = FreeBtn("Payload", Cx(2), y, W, H, bFont);
+                WireToggle(bPayload, false, on => { }); // no field
+                page.Controls.Add(bPayload);
+
                 tc.TabPages.Add(page);
             }
 
             // ── TAB 5 — Navigation Management ────────────────────────────
-            //   Heading : "Navigation Management"
-            //   Row 0   : Next WP  | Prev WP  | R2 Base  | NM04
-            //   Rows 1-4: placeholders NM05–NM20
+            //   Row 0 : Dash R2 Base | R2 Base | Loiter
+            //   Row 1 : Use Curve Guidance
+            //   GroupBox "Way Point"        : Next | Previous
+            //   GroupBox "Track Correction" : Left | Right
+            //   Lat scheme : Offtrack Linear | Offtrack Nonlinear | Pursuit (exclusive)
             {
-                var page = new TabPage("Navigation")
+                var page = new TabPage("Nav")
                 {
                     BackColor = Color.FromArgb(12, 12, 12),
                     ForeColor = LIME
                 };
-
                 AddHeading(page, "Navigation Management");
 
-                page.Controls.Add(MakeToggle("Next WP",  0, 0, false, on => _cmdSender.State.GoToNextWP = on));
-                page.Controls.Add(MakeToggle("Prev WP",  1, 0, false, on => _cmdSender.State.GoToPrevWP = on));
-                page.Controls.Add(MakeToggle("R2 Base",  2, 0, false, on => _cmdSender.State.GcsR2Base  = on));
-                page.Controls.Add(MakePlaceholder("NM04", 3, 0));
+                const int W   = 100;
+                const int H   = 50;
+                const int S   = H + 4;
+                const int OFF = 5;
+                const int G   = 4;
+                int Cx(int col) => OFF + G + col * (W + G);
+                var bFont = new Font("Arial Rounded MT Bold", 9f, FontStyle.Bold);
+                var gFont = new Font("Arial Rounded MT Bold", 8f, FontStyle.Regular);
 
-                FillRows(page, "NM", 1, 4, startN: 5);   // NM05..NM20
+                int y = BTN_Y - 10;
+
+                // ── Row 0 ─────────────────────────────────────────────────
+                var bDashR2 = FreeBtn("Dash R2 Base", Cx(0), y, W, H, bFont);
+                WireToggle(bDashR2, false, on => _cmdSender.State.DashR2Base = on);
+                page.Controls.Add(bDashR2);
+                var bR2 = FreeBtn("R2 Base", Cx(1), y, W, H, bFont);
+                WireToggle(bR2, false, on => _cmdSender.State.GcsR2Base = on);
+                page.Controls.Add(bR2);
+                var bLoiter = FreeBtn("Loiter", Cx(2), y, W, H, bFont);
+                WireToggle(bLoiter, false, on => _cmdSender.State.Loiter = on);
+                page.Controls.Add(bLoiter);
+
+                // ── Row 1 ─────────────────────────────────────────────────
+                y += S;
+                var bCurve = FreeBtn("Use Curve Guidance", Cx(0), y, W, H, bFont);
+                WireToggle(bCurve, false, on => _cmdSender.State.UseCurveGuidance = on);
+                page.Controls.Add(bCurve);
+
+                // ── Way Point groupbox (Next / Previous) ──────────────────
+                y += S + 8;
+                int twoW = G + 2 * (W + G);   // 2-button span (aligns border to button ends)
+                var grpWp = new GroupBox
+                {
+                    Text = "Way Point", Location = new Point(OFF, y),
+                    Size = new Size(twoW, 18 + H + 6), ForeColor = LIME, Font = gFont
+                };
+                // Momentary "send-once": the spec warns waypoints increment every
+                // packet the flag is held. A click sets the bit, sends ONE packet,
+                // then clears it — so it can never latch.
+                void WireOneShot(GcsButton b, Action<bool> set)
+                {
+                    b.Click += (s, e) =>
+                    {
+                        b.SetOn(false);                       // never latch on
+                        set(true);
+                        if (_cmdSender.IsRunning) _cmdSender.SendNow();
+                        set(false);
+                    };
+                }
+                var bNext = FreeBtn("Next", G + 0 * (W + G), 18, W, H, bFont);
+                WireOneShot(bNext, on => _cmdSender.State.GoToNextWP = on);
+                var bPrev = FreeBtn("Previous", G + 1 * (W + G), 18, W, H, bFont);
+                WireOneShot(bPrev, on => _cmdSender.State.GoToPrevWP = on);
+                grpWp.Controls.Add(bNext);
+                grpWp.Controls.Add(bPrev);
+                page.Controls.Add(grpWp);
+
+                // ── Track Correction groupbox (Left / Right) ──────────────
+                y += 18 + H + 6 + 8;
+                var grpTc = new GroupBox
+                {
+                    Text = "Track Correction", Location = new Point(OFF, y),
+                    Size = new Size(twoW, 18 + H + 6), ForeColor = LIME, Font = gFont
+                };
+                var bLeft = FreeBtn("Left", G + 0 * (W + G), 18, W, H, bFont);
+                WireToggle(bLeft, false, on => _cmdSender.State.LeftXTrackCorrection = on);
+                var bRight = FreeBtn("Right", G + 1 * (W + G), 18, W, H, bFont);
+                WireToggle(bRight, false, on => _cmdSender.State.RightXTrackCorrection = on);
+                grpTc.Controls.Add(bLeft);
+                grpTc.Controls.Add(bRight);
+                page.Controls.Add(grpTc);
+
+                // ── Lateral guidance scheme (exclusive: 0/1/2) ────────────
+                y += 18 + H + 6 + 8;
+                var gsLinear = FreeBtn("Offtrk Linear",    Cx(0), y, W, H, bFont);
+                var gsNonLin = FreeBtn("Offtrk NonLinear", Cx(1), y, W, H, bFont);
+                var gsPursuit = FreeBtn("Pursuit Guid",    Cx(2), y, W, H, bFont);
+                WireExclusive(new[] { gsLinear, gsNonLin, gsPursuit }, 0,
+                              idx => _cmdSender.State.LateralGuidanceScheme = idx);
+                page.Controls.Add(gsLinear);
+                page.Controls.Add(gsNonLin);
+                page.Controls.Add(gsPursuit);
 
                 tc.TabPages.Add(page);
             }
 
             // ── TAB 6 — Power Management ──────────────────────────────────
-            //   Heading : "Power Management"
-            //   All placeholders PM01–PM20
+            //   GroupBox "Servo": Port Servos (2 rows) + Starboard Servos (2 rows)
+            //   Power buttons (4 rows) : Weapon..ECU
+            //   Telemetry text: Brakes Actuation / NLG Retraction
+            //
+            //   NOTE: the 24 servo/power buttons map to RelayControlByte1/2/3
+            //   (pkt[26-28]).  Bit order below is ASSUMED SEQUENTIAL and should
+            //   be confirmed against the IPSU relay spec.
             {
                 var page = new TabPage("Power")
                 {
@@ -2554,7 +2807,121 @@ namespace GCS_240626
                     ForeColor = LIME
                 };
                 AddHeading(page, "Power Management");
-                FillRows(page, "PM", 0, 4);
+
+                const int W   = 98;
+                const int H   = 34;
+                const int S   = H + 4;    // stride = 38
+                const int OFF = 5;
+                const int G   = 4;
+                int Cx(int col) => OFF + G + col * (W + G);   // page-relative x
+                int Gx(int col) => 6 + col * (W + G);         // groupbox-relative x
+                var bFont = new Font("Arial Rounded MT Bold", 8f, FontStyle.Bold);
+                var gFont = new Font("Arial Rounded MT Bold", 8f, FontStyle.Regular);
+                var subFont = new Font("Arial Rounded MT Bold", 8f, FontStyle.Bold);
+                int fullW = G + 3 * (W + G);   // = 310
+
+                // Set/clear one bit of a relay byte in CommandState.
+                // Spec (RelayCntrlByte sheets): 0 = ON/Enable, 1 = OFF/Disable.
+                // So a button turned ON CLEARS its bit; OFF SETS it.
+                void SetRelay(int byteNo, int bit, bool on)
+                {
+                    byte m = (byte)(1 << bit);
+                    var st = _cmdSender.State;
+                    bool setBit = !on;   // ON → 0, OFF → 1
+                    if (byteNo == 1) st.RelayControlByte1 = (byte)(setBit ? (st.RelayControlByte1 | m) : (st.RelayControlByte1 & ~m));
+                    else if (byteNo == 2) st.RelayControlByte2 = (byte)(setBit ? (st.RelayControlByte2 | m) : (st.RelayControlByte2 & ~m));
+                    else                  st.RelayControlByte3 = (byte)(setBit ? (st.RelayControlByte3 | m) : (st.RelayControlByte3 & ~m));
+                }
+                // Create + wire a relay power button, add it to the given parent.
+                // NOTE: do NOT touch _cmdSender here — tabs are built in the ctor,
+                // before _cmdSender exists. Default relay bytes are seeded in
+                // CommandState (RelayControlByte1/2/3 initializers) instead.
+                void PwrBtn(Control parent, string lbl, int x, int y2, bool initOn, int byteNo, int bit)
+                {
+                    var b = FreeBtn(lbl, x, y2, W, H, bFont);
+                    WireToggle(b, initOn, on => SetRelay(byteNo, bit, on));
+                    parent.Controls.Add(b);
+                }
+
+                int y = BTN_Y - 12;
+
+                // ── Servo groupbox ────────────────────────────────────────
+                int servoH = 16 + 14 + 2 * S + 14 + 2 * S + 6;   // title+sub+2rows+sub+2rows
+                var grpServo = new GroupBox
+                {
+                    Text = "Servo", Location = new Point(OFF, y),
+                    Size = new Size(fullW, servoH), ForeColor = LIME, Font = gFont
+                };
+                int gy = 16;
+                grpServo.Controls.Add(new Label
+                {
+                    Text = "Port Servos", Location = new Point(6, gy), Size = new Size(fullW - 12, 14),
+                    ForeColor = LIME, BackColor = Color.Transparent, Font = subFont
+                });
+                // Byte/bit per RelayCntrlByte1/2/3 sheets; polarity handled in SetRelay (0=ON).
+                gy += 14;
+                PwrBtn(grpServo, "Aileron",    Gx(0), gy, true,  1, 7);   // Port_Aileron
+                PwrBtn(grpServo, "Flap",       Gx(1), gy, true,  1, 1);   // Port_Flap
+                PwrBtn(grpServo, "B Rudder",   Gx(2), gy, true,  1, 6);   // Port_Bottom_Ruddervator
+                gy += S;
+                PwrBtn(grpServo, "Top Rudder", Gx(0), gy, true,  1, 0);   // Port_Top_Ruddervator
+                PwrBtn(grpServo, "Video Rec",  Gx(1), gy, false, 1, 3);   // Video_Recorder (UI default OFF)
+                PwrBtn(grpServo, "Strobe",     Gx(2), gy, false, 1, 2);   // Strobe_Light  (UI default OFF)
+                gy += S;
+                grpServo.Controls.Add(new Label
+                {
+                    Text = "Star Board Servos", Location = new Point(6, gy), Size = new Size(fullW - 12, 14),
+                    ForeColor = LIME, BackColor = Color.Transparent, Font = subFont
+                });
+                gy += 14;
+                PwrBtn(grpServo, "Aileron",    Gx(0), gy, true,  1, 4);   // StarBoard_Aileron
+                PwrBtn(grpServo, "Flap",       Gx(1), gy, true,  2, 6);   // StarBoard_Flap
+                PwrBtn(grpServo, "B Rudder",   Gx(2), gy, true,  1, 5);   // StarBoard_Bottom_Ruddervator
+                gy += S;
+                PwrBtn(grpServo, "Top Rudder", Gx(0), gy, true,  2, 7);   // StarBoard_Top_Ruddervator
+                PwrBtn(grpServo, "N Wheel",    Gx(1), gy, true,  2, 5);   // Nose_Wheel
+                PwrBtn(grpServo, "Servo12",    Gx(2), gy, true,  2, 4);   // Servo12_Cntrl
+                page.Controls.Add(grpServo);
+
+                // ── Power buttons (4 rows) ────────────────────────────────
+                y += servoH + 16;            // gap after 4th (last servo) row
+                PwrBtn(page, "Weapon",      Cx(0), y, false, 2, 3);   // Weapon_Cntrl (dft OFF)
+                PwrBtn(page, "RETRC",       Cx(1), y, false, 3, 3);   // Retraction   (dft Disable)
+                PwrBtn(page, "ComLink",     Cx(2), y, true,  3, 7);   // ComLnk
+                y += S;
+                PwrBtn(page, "Camera OPT12", Cx(0), y, true,  3, 6);  // Camera/Opt12
+                PwrBtn(page, "Pitot Heater", Cx(1), y, false, 2, 1);  // Pitot Heater_Cntrl (dft OFF)
+                PwrBtn(page, "Payload",      Cx(2), y, false, 2, 2);  // Payload_Cntrl (dft OFF)
+                // ── Rows 7 & 8 enclosed in a boundary groupbox ────────────
+                y += S + 14;                 // gap after 6th row
+                int grp2H = 10 + H + 4 + H + 8;   // top pad + 2 rows + gaps
+                var grpPwr2 = new GroupBox
+                {
+                    Text = "", Location = new Point(OFF, y - 6),
+                    Size = new Size(fullW, grp2H), ForeColor = LIME, Font = gFont
+                };
+                int gr7 = 10, gr8 = 10 + S;
+                PwrBtn(grpPwr2, "AUX 1",       Gx(0), gr7, false, 3, 0);   // Aux1 (dft OFF)
+                PwrBtn(grpPwr2, "OPT5V",       Gx(1), gr7, true,  3, 1);   // Opt5v
+                PwrBtn(grpPwr2, "Brake Power", Gx(2), gr7, false, 3, 2);   // Brakes (dft Disable)
+                PwrBtn(grpPwr2, "ALTERNATOR",  Gx(0), gr8, true,  3, 4);   // Alternator
+                PwrBtn(grpPwr2, "AUX 2",       Gx(1), gr8, false, 3, 5);   // Aux2 (dft OFF)
+                PwrBtn(grpPwr2, "ECU",         Gx(2), gr8, true,  2, 0);   // ECU_Cntrl
+                page.Controls.Add(grpPwr2);
+
+                // ── Telemetry readouts (text, live values TBD) ────────────
+                y += grp2H - 6 + 6;
+                page.Controls.Add(new Label
+                {
+                    Text = "Brakes Actuation: 0", Location = new Point(Cx(0), y),
+                    Size = new Size(fullW, 18), ForeColor = LIME, BackColor = Color.Transparent, Font = gFont
+                });
+                page.Controls.Add(new Label
+                {
+                    Text = "NLG Retraction: 0", Location = new Point(Cx(0), y + 20),
+                    Size = new Size(fullW, 18), ForeColor = LIME, BackColor = Color.Transparent, Font = gFont
+                });
+
                 tc.TabPages.Add(page);
             }
 

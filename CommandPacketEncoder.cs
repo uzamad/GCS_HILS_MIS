@@ -65,8 +65,8 @@ namespace GCS_240626
                 (s.DecParam             ? 0x02 : 0) |
                 (s.SetDefaultLonGains   ? 0x04 : 0) |
                 (s.SetDefaultLatGains   ? 0x08 : 0) |
-                (s.HeightControlScheme  ? 0x10 : 0) |
-                (s.UseAduSpeed          ? 0x20 : 0));
+                (s.HeightControlScheme  ? 0x10 : 0));
+                // bit 5 (0x20) reserved for UseHeightErrLeadFilter — not yet wired
 
             // ── pkt[10] / TempBuff[6]  AP Byte 2 ────────────────────
             pkt[10] = (byte)(
@@ -109,6 +109,7 @@ namespace GCS_240626
 
             // ── pkt[14] / TempBuff[10]  Mixed Data Byte ─────────────
             pkt[14] = (byte)(
+                (s.DashR2Base           ? 0x01 : 0) |
                 (s.GcsR2Base            ? 0x02 : 0) |
                 (s.Search               ? 0x04 : 0) |
                 (s.FullThrottle         ? 0x08 : 0) |
